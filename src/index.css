@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  @apply bg-surface text-slate-800 font-sans;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: inherit;
+}
+
+/* Grayscale-style map tiles feel (light, design-like) */
+.map-tiles-grayscale .leaflet-tile {
+  filter: saturate(0.85) contrast(1.02) brightness(1.03);
+}
+
+.marker-pin-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Range input — purple track (WebKit + Firefox) */
+input[type='range'].slider-primary {
+  @apply h-2 appearance-none rounded-full bg-slate-200;
+}
+input[type='range'].slider-primary::-webkit-slider-thumb {
+  @apply h-5 w-5 cursor-pointer appearance-none rounded-full border-2 border-white bg-primary shadow-md;
+}
+input[type='range'].slider-primary::-moz-range-thumb {
+  @apply h-5 w-5 cursor-pointer rounded-full border-2 border-white bg-primary shadow-md;
+}
+input[type='range'].slider-primary::-moz-range-track {
+  @apply h-2 rounded-full bg-slate-200;
+}

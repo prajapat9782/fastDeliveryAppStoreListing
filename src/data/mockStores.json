@@ -1,0 +1,44 @@
+[
+  {
+    "city": "New Delhi",
+    "client": "Blinkit",
+    "store_name": "Connaught Blinkit Hub",
+    "latitude": 28.6139,
+    "longitude": 77.209
+  },
+  {
+    "city": "New Delhi",
+    "client": "Zepto",
+    "store_name": "Saket Zepto Dark Store",
+    "latitude": 28.5244,
+    "longitude": 77.2065
+  },
+  {
+    "city": "Gurugram",
+    "client": "Flipkart",
+    "store_name": "Gurugram FC",
+    "latitude": 28.4595,
+    "longitude": 77.0266
+  },
+  {
+    "city": "Gurugram",
+    "client": "Instamart",
+    "store_name": "Sector 29 Instamart",
+    "latitude": 28.4328,
+    "longitude": 77.091
+  },
+  {
+    "city": "Noida",
+    "client": "Zudio",
+    "store_name": "Noida Zudio Flagship",
+    "latitude": 28.5355,
+    "longitude": 77.391
+  },
+  {
+    "city": "Noida",
+    "client": "Blinkit",
+    "store_name": "Sector 18 Blinkit",
+    "latitude": 28.5706,
+    "longitude": 77.3212
+  }
+]
