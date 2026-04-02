@@ -1,9 +1,10 @@
 import { CLIENT_COLORS, CLIENT_ICON_URL } from '../constants/clients'
+import { RiderRequirementLegend } from './RiderRequirementSummary'
 
-/** Floating card on map — brand logos + names */
-export default function MapLegend() {
+/** Floating card on map — brand logos + names + optional rider requirement for selected city */
+export default function MapLegend({ cityName, riderTotal, riderByClient }) {
   return (
-    <div className="pointer-events-auto w-[200px] rounded-2xl border border-slate-100 bg-white p-4 shadow-float">
+    <div className="pointer-events-auto w-[220px] rounded-2xl border border-slate-100 bg-white p-4 shadow-float md:w-[200px]">
       <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Map legend</p>
       <ul className="space-y-2.5">
         {Object.keys(CLIENT_COLORS).map((name) => {
@@ -24,6 +25,7 @@ export default function MapLegend() {
           )
         })}
       </ul>
+      <RiderRequirementLegend cityName={cityName} total={riderTotal} byClient={riderByClient} />
     </div>
   )
 }

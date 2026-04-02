@@ -9,10 +9,14 @@ import NearbyList from './components/NearbyList'
 import NearbyAllDialog from './components/NearbyAllDialog'
 import MobileSelectionSheet from './components/MobileSelectionSheet'
 import MobileFiltersSheet from './components/MobileFiltersSheet'
-import { findNearbyStores } from './utils/haversine'
+import { findNearbyStores, haversineKm } from './utils/haversine'
+import { computeRiderRequirementStats } from './utils/riderRequirementStats'
+import { RiderRequirementSidebar } from './components/RiderRequirementSummary'
+import { normalizeZoneLabel } from './utils/zone'
 
 export default function App() {
   const { stores, loading, usedMock, invalidRows } = useStoreData()
+  const [zone, setZone] = useState('')
   const [city, setCity] = useState('')
   const [client, setClient] = useState('')
   const [storeId, setStoreId] = useState('')
@@ -22,14 +26,26 @@ export default function App() {
   const [nearbyAllOpen, setNearbyAllOpen] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [invalidOpen, setInvalidOpen] = useState(false)
+  /** Nearby brand tabs (All / Blinkit / …) — filters map markers inside the circle */
+  const [nearbyBrandFilter, setNearbyBrandFilter] = useState('All')
 
   useEffect(() => {
     setStoreId('')
   }, [city, client])
 
   useEffect(() => {
+    setCity('')
+    setStoreId('')
+    setSelectedFromMap(null)
+  }, [zone])
+
+  useEffect(() => {
     setSelectedFromMap(null)
   }, [city, client, storeId])
+
+  useEffect(() => {
+    setNearbyBrandFilter('All')
+  }, [selectedFromMap?.id, storeId])
 
   // Close dialogs / reset tile size when the selection changes.
   useEffect(() => {
@@ -37,45 +53,87 @@ export default function App() {
     setNearbyExpanded(false)
   }, [selectedFromMap])
 
+  /** Stores after zone filter (sheet column name contains "zone") */
+  const storesInZone = useMemo(() => {
+    if (!zone) return stores
+    return stores.filter((s) => {
+      const z = normalizeZoneLabel(s.zone)
+      return z === zone
+    })
+  }, [stores, zone])
+
   const cities = useMemo(() => {
-    const u = new Set(stores.map((s) => s.city).filter(Boolean))
+    const u = new Set(storesInZone.map((s) => s.city).filter(Boolean))
     return Array.from(u).sort()
-  }, [stores])
+  }, [storesInZone])
 
   const filteredForMap = useMemo(() => {
-    let list = stores
+    let list = storesInZone
     if (city) list = list.filter((s) => s.city === city)
     if (client) list = list.filter((s) => s.client === client)
-    if (storeId) list = list.filter((s) => s.id === storeId)
-    return list
-  }, [stores, city, client, storeId])
+
+    const center =
+      selectedFromMap ?? (storeId ? storesInZone.find((s) => s.id === storeId) : null)
+    if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) {
+      return list
+    }
+
+    let pool = list.filter((s) => haversineKm(center.lat, center.lng, s.lat, s.lng) <= distanceKm)
+
+    if (nearbyBrandFilter && nearbyBrandFilter !== 'All') {
+      pool = pool.filter((s) => s.client === nearbyBrandFilter)
+      if (!pool.some((s) => s.id === center.id)) {
+        pool = [center, ...pool]
+      }
+    }
+
+    return pool
+  }, [storesInZone, city, client, selectedFromMap, storeId, distanceKm, nearbyBrandFilter])
 
   const storeOptions = useMemo(() => {
-    let list = stores
+    let list = storesInZone
     if (city) list = list.filter((s) => s.city === city)
     if (client) list = list.filter((s) => s.client === client)
     return [...list].sort((a, b) => a.store_name.localeCompare(b.store_name))
-  }, [stores, city, client])
+  }, [storesInZone, city, client])
+
+  const storesInSelectedCity = useMemo(() => {
+    if (!city) return []
+    return storesInZone.filter((s) => s.city === city)
+  }, [storesInZone, city])
+
+  const riderStats = useMemo(() => computeRiderRequirementStats(storesInSelectedCity), [storesInSelectedCity])
 
   const flyToPoint = useMemo(() => {
     if (!storeId) return null
-    return stores.find((s) => s.id === storeId) ?? null
-  }, [stores, storeId])
+    return storesInZone.find((s) => s.id === storeId) ?? null
+  }, [storesInZone, storeId])
 
-  const useFitBounds = !storeId
+  /** Circle + marker highlight: map tap selection wins over dropdown-only selection */
+  const mapCircleStore = selectedFromMap ?? flyToPoint
 
-  /** Full dataset — ignores city/client/store filters so nearby shows every brand in radius. */
+  const useFitBounds = !mapCircleStore
+
+  /** Stores within radius of selection — scoped to current zone filter + circle distance. */
   const nearby = useMemo(() => {
     if (!selectedFromMap) return []
-    return findNearbyStores(selectedFromMap, stores, distanceKm)
-  }, [selectedFromMap, stores, distanceKm])
+    return findNearbyStores(selectedFromMap, storesInZone, distanceKm)
+  }, [selectedFromMap, storesInZone, distanceKm])
 
   const handleReset = useCallback(() => {
+    setZone('')
     setCity('')
     setClient('')
     setStoreId('')
     setDistanceKm(20)
     setSelectedFromMap(null)
+    setNearbyBrandFilter('All')
+  }, [])
+
+  /** Hide Active selection + Nearby when user uses the store search / dropdown */
+  const clearMapSelection = useCallback(() => {
+    setSelectedFromMap(null)
+    setNearbyAllOpen(false)
   }, [])
 
   if (loading) {
@@ -91,16 +149,21 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-surface">
-      <TopNav onOpenFilters={() => setMobileFiltersOpen(true)} />
+      <TopNav
+        onOpenFilters={() => setMobileFiltersOpen(true)}
+        city={city}
+        riderTotal={riderStats.total}
+        riderByClient={riderStats.byClient}
+      />
 
       {usedMock && (
-        <div className="shrink-0 border-b border-amber-200/80 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-900">
+        <div className="shrink-0 border-b border-amber-200/80 bg-amber-50 px-4 py-3 text-center text-xs font-medium leading-relaxed text-amber-900 md:py-2">
           Using offline mock data — sheet unreachable or produced no valid rows.
         </div>
       )}
 
       {invalidRows.length > 0 && (
-        <div className="shrink-0 border-b border-blue-200/80 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-900">
+        <div className="shrink-0 border-b border-blue-200/80 bg-blue-50 px-4 py-3 text-center text-xs font-medium leading-relaxed text-blue-900 md:py-2">
           <span>Skipped {invalidRows.length} invalid row(s) from sheet.</span>{' '}
           <button
             type="button"
@@ -118,6 +181,8 @@ export default function App() {
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside className="hidden lg:flex max-h-[45vh] shrink-0 flex-col border-slate-200 bg-white px-5 py-6 shadow-card lg:max-h-none lg:h-full lg:w-[340px] lg:border-r lg:px-6">
           <Filters
+            zone={zone}
+            setZone={setZone}
             cities={cities}
             city={city}
             setCity={setCity}
@@ -129,6 +194,12 @@ export default function App() {
             distanceKm={distanceKm}
             setDistanceKm={setDistanceKm}
             onReset={handleReset}
+            onClearMapSelection={clearMapSelection}
+          />
+          <RiderRequirementSidebar
+            cityName={city}
+            total={riderStats.total}
+            byClient={riderStats.byClient}
           />
         </aside>
 
@@ -142,35 +213,35 @@ export default function App() {
               <div className="relative h-full min-h-[280px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-card lg:min-h-0">
                 <MapView
                   stores={filteredForMap}
-                  flyToPoint={flyToPoint}
-                  selectedStore={selectedFromMap}
+                  flyToPoint={mapCircleStore}
+                  selectedStore={mapCircleStore}
                   distanceKm={distanceKm}
                   onMarkerClick={setSelectedFromMap}
                   useFitBounds={useFitBounds}
                 />
 
                 <div className="pointer-events-none absolute left-3 top-3 z-[1000] hidden md:block md:left-4 md:top-4">
-                  <MapLegend />
+                  <MapLegend
+                    cityName={city}
+                    riderTotal={riderStats.total}
+                    riderByClient={riderStats.byClient}
+                  />
                 </div>
 
                 {selectedFromMap && (
-                  <div className="pointer-events-none absolute right-3 top-3 z-[1000] max-w-[calc(100%-1rem)] md:right-4 md:top-4">
-                    <div className="hidden pointer-events-auto md:block">
-                      <ActiveSelectionCard store={selectedFromMap} />
-                    </div>
-                  </div>
-                )}
-
-                {selectedFromMap && (
-                  <div className="pointer-events-none absolute bottom-3 right-3 z-[1000] max-w-[calc(100%-1.5rem)] md:bottom-4 md:right-4">
-                    <div className="hidden pointer-events-auto md:block">
+                  <div className="pointer-events-none absolute bottom-3 right-3 top-3 z-[1000] hidden max-w-[calc(100%-1.5rem)] md:right-4 md:top-4 md:bottom-4 md:flex md:max-w-[280px] md:flex-col md:gap-0">
+                    <div className="pointer-events-auto flex h-full min-h-0 w-full max-w-[280px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-float">
+                      <ActiveSelectionCard store={selectedFromMap} compact />
                       <NearbyList
                         origin={selectedFromMap}
                         items={nearby}
                         distanceKm={distanceKm}
+                        nearbyBrandFilter={nearbyBrandFilter}
+                        onNearbyBrandFilterChange={setNearbyBrandFilter}
                         expanded={nearbyExpanded}
                         onToggleExpanded={() => setNearbyExpanded((v) => !v)}
                         onViewAll={() => setNearbyAllOpen(true)}
+                        stacked
                       />
                     </div>
                   </div>
@@ -196,6 +267,8 @@ export default function App() {
                     store={selectedFromMap}
                     nearbyItems={nearby}
                     distanceKm={distanceKm}
+                    nearbyBrandFilter={nearbyBrandFilter}
+                    onNearbyBrandFilterChange={setNearbyBrandFilter}
                     onClose={() => setSelectedFromMap(null)}
                     onOpenAll={() => setNearbyAllOpen(true)}
                     onPickStore={(s) => setSelectedFromMap(s)}
@@ -219,13 +292,16 @@ export default function App() {
         open={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
         cities={cities}
+        zone={zone}
         city={city}
         client={client}
         storeId={storeId}
         storeOptions={storeOptions}
         distanceKm={distanceKm}
         onReset={handleReset}
-        onApply={({ city: nextCity, client: nextClient, storeId: nextStoreId, distanceKm: nextDistanceKm }) => {
+        onClearMapSelection={clearMapSelection}
+        onApply={({ zone: nextZone, city: nextCity, client: nextClient, storeId: nextStoreId, distanceKm: nextDistanceKm }) => {
+          setZone(nextZone ?? '')
           setCity(nextCity ?? '')
           setClient(nextClient ?? '')
           setStoreId(nextStoreId ?? '')

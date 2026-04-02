@@ -72,7 +72,7 @@ function MapToolbar() {
             (pos) => {
               map.flyTo([pos.coords.latitude, pos.coords.longitude], 14)
             },
-            () => {},
+            () => { },
             { enableHighAccuracy: true, timeout: 8000 }
           )
         }}
@@ -101,29 +101,34 @@ function StoreMarker({ store, selected, onClick }) {
     const req = Math.max(0, Math.round(Number(store.totalRaiderReq ?? 0) || 0))
     const safeUrl = url.replace(/"/g, '&quot;')
 
+    const SELECT_RING = '#6D28D9'
+    const selectedGlow = selected
+      ? `box-shadow:0 0 0 4px ${SELECT_RING},0 0 0 8px rgba(109,40,217,0.25),0 14px 32px rgba(109,40,217,0.45);`
+      : 'box-shadow:none;'
+
     // Old/simple marker (no required-rider badge)
     if (!req) {
-      const size = selected ? 48 : 40
-      const border = selected ? 4 : 3
+      const size = selected ? 54 : 40
+      const border = selected ? 5 : 3
       const innerOld = url
         ? `<img src="${safeUrl}" alt="" draggable="false" width="${size}" height="${size}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'" />`
-        : `<span style="font-size:${selected ? 20 : 17}px;line-height:1;">${emoji}</span>`
+        : `<span style="font-size:${selected ? 22 : 17}px;line-height:1;">${emoji}</span>`
 
       return L.divIcon({
         className: 'marker-pin-wrap',
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;border:${border}px solid #ffffff;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:none;">${innerOld}</div>`,
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;border:${border}px solid #ffffff;background:${color};display:flex;align-items:center;justify-content:center;overflow:visible;${selectedGlow}">${innerOld}</div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
       })
     }
 
     // New pin marker (shows required-rider badge)
-    const width = selected ? 56 : 50
-    const height = selected ? 72 : 64
-    const innerSize = selected ? 34 : 30
+    const width = selected ? 62 : 50
+    const height = selected ? 82 : 64
+    const innerSize = selected ? 38 : 30
     const inner = url
       ? `<img src="${safeUrl}" alt="" draggable="false" width="${innerSize}" height="${innerSize}" style="width:${innerSize}px;height:${innerSize}px;object-fit:cover;border-radius:12px;display:block;" onerror="this.style.display='none'" />`
-      : `<span style="font-size:${selected ? 18 : 16}px;line-height:1;">${emoji}</span>`
+      : `<span style="font-size:${selected ? 20 : 16}px;line-height:1;">${emoji}</span>`
     const badge = `<div style="position:absolute;right:-2px;top:-4px;min-width:26px;height:26px;padding:0 8px;border-radius:999px;background:#F59E0B;border:2px solid rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;font-weight:900;font-size:13px;color:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,0.18);">${req}</div>`
 
     // Pin-like background (dark) with subtle stroke
@@ -136,12 +141,16 @@ function StoreMarker({ store, selected, onClick }) {
       </svg>
     `
 
+    const pinShellStyle = selected
+      ? `filter:drop-shadow(0 0 6px ${SELECT_RING}) drop-shadow(0 10px 24px rgba(109,40,217,0.5));`
+      : ''
+
     return L.divIcon({
       className: 'marker-pin-wrap',
       html: `
-        <div style="position:relative;width:${width}px;height:${height}px;">
+        <div style="position:relative;width:${width}px;height:${height}px;${pinShellStyle}">
           ${pinSvg}
-          <div style="position:absolute;left:50%;top:35px;transform:translate(-50%,-50%);width:${innerSize}px;height:${innerSize}px;border-radius:14px;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 10px 22px rgba(15,23,42,0.22);border:2px solid rgba(255,255,255,0.9);">
+          <div style="position:absolute;left:50%;top:35px;transform:translate(-50%,-50%);width:${innerSize}px;height:${innerSize}px;border-radius:14px;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:${selected ? `0 0 0 3px ${SELECT_RING},0 12px 26px rgba(109,40,217,0.35)` : '0 10px 22px rgba(15,23,42,0.22)'};border:2px solid rgba(255,255,255,0.95);">
             ${inner}
           </div>
           ${badge}
@@ -156,6 +165,7 @@ function StoreMarker({ store, selected, onClick }) {
     <Marker
       position={[store.lat, store.lng]}
       icon={icon}
+      zIndexOffset={selected ? 800 : 0}
       eventHandlers={{
         click: () => onClick(store),
       }}

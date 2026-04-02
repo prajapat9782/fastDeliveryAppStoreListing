@@ -1,4 +1,5 @@
 import { resolveCanonicalClient } from '../constants/clients'
+import { extractZoneFromRow } from './zone'
 
 /**
  * Normalize one Google Sheet row into a store record.
@@ -154,12 +155,15 @@ export function normalizeRowWithIssue(row, index) {
     return null
   })()
 
+  const zone = extractZoneFromRow(row)
+
   return {
     record: {
     id: `store-${index}-${lat.toFixed(4)}-${lng.toFixed(4)}`,
     city: cityRaw,
     client,
     store_name: storeName,
+    zone,
     lat,
     lng,
     totalRaider: Number(totalRaiderRaw) || 0,

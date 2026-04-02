@@ -5,6 +5,7 @@ export default function MobileFiltersSheet({
   open,
   onClose,
   cities,
+  zone,
   city,
   client,
   storeId,
@@ -12,9 +13,11 @@ export default function MobileFiltersSheet({
   distanceKm,
   onReset,
   onApply,
+  onClearMapSelection,
 }) {
   if (!open) return null
 
+  const [draftZone, setDraftZone] = useState(zone)
   const [draftCity, setDraftCity] = useState(city)
   const [draftClient, setDraftClient] = useState(client)
   const [draftStoreId, setDraftStoreId] = useState(storeId)
@@ -22,11 +25,12 @@ export default function MobileFiltersSheet({
 
   useEffect(() => {
     if (!open) return
+    setDraftZone(zone)
     setDraftCity(city)
     setDraftClient(client)
     setDraftStoreId(storeId)
     setDraftDistanceKm(distanceKm)
-  }, [open, city, client, storeId, distanceKm])
+  }, [open, zone, city, client, storeId, distanceKm])
 
   return (
     <div
@@ -53,6 +57,8 @@ export default function MobileFiltersSheet({
 
         <div className="mt-2.5 h-[68vh] min-h-0 overflow-hidden rounded-2xl border border-slate-100 bg-white">
           <Filters
+            zone={draftZone}
+            setZone={setDraftZone}
             cities={cities}
             city={draftCity}
             setCity={setDraftCity}
@@ -67,6 +73,7 @@ export default function MobileFiltersSheet({
               onReset?.()
               onClose?.()
             }}
+            onClearMapSelection={onClearMapSelection}
           />
         </div>
 
@@ -75,6 +82,7 @@ export default function MobileFiltersSheet({
             type="button"
             className="flex-1 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
             onClick={() => {
+              setDraftZone(zone)
               setDraftCity(city)
               setDraftClient(client)
               setDraftStoreId(storeId)
@@ -89,6 +97,7 @@ export default function MobileFiltersSheet({
             className="flex-1 rounded-2xl bg-primary py-3 text-sm font-extrabold text-white shadow-sm hover:bg-primary-dark"
             onClick={() => {
               onApply?.({
+                zone: draftZone,
                 city: draftCity,
                 client: draftClient,
                 storeId: draftStoreId,

@@ -72,6 +72,8 @@ export default function MobileSelectionSheet({
   store,
   nearbyItems,
   distanceKm,
+  nearbyBrandFilter: nearbyBrandFilterProp,
+  onNearbyBrandFilterChange,
   onClose,
   onOpenAll,
   onPickStore,
@@ -91,7 +93,9 @@ export default function MobileSelectionSheet({
     return ['All', ...clients]
   }, [nearbyItems])
 
-  const [activeTab, setActiveTab] = useState('All')
+  const [activeTabLocal, setActiveTabLocal] = useState('All')
+  const controlled = typeof onNearbyBrandFilterChange === 'function'
+  const activeTab = controlled ? (nearbyBrandFilterProp ?? 'All') : activeTabLocal
 
   const visibleNearby = useMemo(() => {
     if (activeTab === 'All') return nearbyItems
@@ -212,10 +216,11 @@ export default function MobileSelectionSheet({
                         <button
                           key={t}
                           type="button"
-                          onClick={() => setActiveTab(t)}
-                          className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-extrabold transition ${
-                            active ? 'bg-primary text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                          }`}
+                          onClick={() =>
+                            controlled ? onNearbyBrandFilterChange(t) : setActiveTabLocal(t)
+                          }
+                          className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-extrabold transition ${active ? 'bg-primary text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                            }`}
                         >
                           {t}
                         </button>

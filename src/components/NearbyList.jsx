@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { CLIENT_COLORS, CLIENT_EMOJI, CLIENT_ICON_URL } from '../constants/clients'
 
 function BrandIcon({ client }) {
@@ -33,13 +33,18 @@ export default function NearbyList({
   origin,
   items,
   distanceKm,
+  nearbyBrandFilter: nearbyBrandFilterProp,
+  onNearbyBrandFilterChange,
   onViewAll,
   expanded,
   onToggleExpanded,
+  stacked = false,
 }) {
-  const heightClass = expanded
-    ? 'max-h-[min(68vh,520px)]'
-    : 'max-h-[min(52vh,420px)]'
+  const heightClass = stacked
+    ? ''
+    : expanded
+      ? 'max-h-[min(68vh,520px)]'
+      : 'max-h-[min(52vh,420px)]'
 
   const tabs = useMemo(() => {
     const clients = Array.from(new Set((items || []).map((s) => s.client).filter(Boolean)))
@@ -47,7 +52,19 @@ export default function NearbyList({
     return ['All', ...clients]
   }, [items])
 
-  const [activeTab, setActiveTab] = useState('All')
+  const [activeTabLocal, setActiveTabLocal] = useState('All')
+  const controlled = typeof onNearbyBrandFilterChange === 'function'
+  const activeTab = controlled ? (nearbyBrandFilterProp ?? 'All') : activeTabLocal
+
+  useEffect(() => {
+    if (controlled) return
+    setActiveTabLocal('All')
+  }, [origin?.id, controlled])
+
+  const setActiveTab = (t) => {
+    if (controlled) onNearbyBrandFilterChange(t)
+    else setActiveTabLocal(t)
+  }
 
   const visibleItems = useMemo(() => {
     if (!origin) return []
@@ -65,10 +82,12 @@ export default function NearbyList({
     )
   }
 
+  const outerShell = stacked
+    ? 'pointer-events-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-none border-0 border-t border-slate-100 bg-white shadow-none'
+    : `pointer-events-auto flex w-[min(100%,340px)] flex-col rounded-2xl border border-slate-100 bg-white shadow-float ${heightClass}`
+
   return (
-    <div
-      className={`pointer-events-auto flex w-[min(100%,340px)] flex-col rounded-2xl border border-slate-100 bg-white shadow-float ${heightClass}`}
-    >
+    <div className={outerShell}>
       <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
         <div>
           <h3 className="text-sm font-bold text-slate-900">
@@ -76,7 +95,7 @@ export default function NearbyList({
           </h3>
           {origin && (
             <p className="text-[11px] text-slate-400">
-              All clients within {distanceKm} km · sorted by distance
+              Within {distanceKm} km · tabs filter this list and the map
             </p>
           )}
         </div>
@@ -101,7 +120,7 @@ export default function NearbyList({
         )}
       </div>
 
-      <div className="min-h-[140px] flex-1 overflow-y-auto">
+      <div className={`min-h-0 flex-1 overflow-y-auto ${stacked ? 'min-h-[100px]' : 'min-h-[140px]'}`}>
         {!origin && (
           <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-2 px-6 py-8 text-center">
             <div className="rounded-full bg-slate-100 p-3 text-slate-400">
@@ -132,11 +151,10 @@ export default function NearbyList({
                       key={t}
                       type="button"
                       onClick={() => setActiveTab(t)}
-                      className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-bold transition ${
-                        active
+                      className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-bold transition ${active
                           ? 'bg-primary text-white'
                           : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {t}
                     </button>
@@ -145,24 +163,24 @@ export default function NearbyList({
               </div>
             </div>
 
-          <ul className="divide-y divide-slate-100 py-1">
-            {visibleItems.map((s) => (
-              <li key={s.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50/80">
-                <BrandIcon client={s.client} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-900">{s.store_name}</p>
-                  <p className="flex items-center truncate text-xs font-medium text-primary/90">
-                    <span className="truncate">{s.client}</span>
-                    {reqChip(s)}
-                  </p>
-                  <p className="truncate text-[11px] text-slate-400">{s.city}</p>
-                </div>
-                <span className="shrink-0 rounded-lg bg-primary-light px-2 py-1 font-mono text-xs font-bold text-primary">
-                  {s.distanceKm.toFixed(1)} km
-                </span>
-              </li>
-            ))}
-          </ul>
+            <ul className="divide-y divide-slate-100 py-1">
+              {visibleItems.map((s) => (
+                <li key={s.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50/80">
+                  <BrandIcon client={s.client} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{s.store_name}</p>
+                    <p className="flex items-center truncate text-xs font-medium text-primary/90">
+                      <span className="truncate">{s.client}</span>
+                      {reqChip(s)}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-400">{s.city}</p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-primary-light px-2 py-1 font-mono text-xs font-bold text-primary">
+                    {s.distanceKm.toFixed(1)} km
+                  </span>
+                </li>
+              ))}
+            </ul>
           </>
         )}
       </div>
