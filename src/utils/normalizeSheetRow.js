@@ -6,16 +6,67 @@ import { resolveCanonicalClient } from '../constants/clients'
  * and the legacy reference sheet (City, Client, lat, lng, etc.).
  */
 export function normalizeRow(row, index) {
-  const lat = parseFloat(row.latitude ?? row.lat ?? row.Latitude)
-  const lng = parseFloat(row.longitude ?? row.lng ?? row.Longitude)
+  const { record } = normalizeRowWithIssue(row, index)
+  return record
+}
 
-  if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+export function normalizeRowWithIssue(row, index) {
+  const isEmpty = (v) => v == null || String(v).trim() === ''
+  const pick = (...vals) => vals.find((v) => !isEmpty(v))
+
+  const latRaw = pick(row?.latitude, row?.lat, row?.Latitude)
+  const lngRaw = pick(row?.longitude, row?.lng, row?.Longitude)
+  const clientRawCandidate = pick(row?.client, row?.Client)
+  const cityRawCandidate = pick(row?.city, row?.City)
+  const storeNameCandidate = (
+    row?.['Store Name'] ??
+    row?.store_name ??
+    row?.storeName ??
+    row?.['store name'] ??
+    row?.Store ??
+    row?.Name ??
+    ''
+  )
+    .toString()
+    .trim()
+
+  const missingKeys = []
+  if (isEmpty(clientRawCandidate)) missingKeys.push('client')
+  if (isEmpty(latRaw)) missingKeys.push('latitude')
+  if (isEmpty(lngRaw)) missingKeys.push('longitude')
+  if (isEmpty(cityRawCandidate)) missingKeys.push('city')
+  if (!storeNameCandidate) missingKeys.push('Store Name')
+
+  const lat = parseFloat(latRaw)
+  const lng = parseFloat(lngRaw)
+
+  if (Number.isNaN(lat) || Number.isNaN(lng)) {
+    return {
+      record: null,
+      issue: {
+        row: index + 1,
+        store_name: storeNameCandidate || `Row ${index + 1}`,
+        reason: 'Missing/invalid latitude or longitude',
+        missing_keys: missingKeys,
+      },
+    }
+  }
 
   const cityRaw = (row.city ?? row.City ?? '').toString().trim()
 
   const clientRaw = (row.client ?? row.Client ?? '').toString().trim()
   const client = resolveCanonicalClient(clientRaw)
-  if (!client) return null
+  if (!client) {
+    return {
+      record: null,
+      issue: {
+        row: index + 1,
+        store_name: storeNameCandidate || `Row ${index + 1}`,
+        reason: 'Missing/invalid client',
+        missing_keys: missingKeys,
+      },
+    }
+  }
 
   let storeName = (
     row['Store Name'] ??
@@ -104,6 +155,7 @@ export function normalizeRow(row, index) {
   })()
 
   return {
+    record: {
     id: `store-${index}-${lat.toFixed(4)}-${lng.toFixed(4)}`,
     city: cityRaw,
     client,
@@ -118,10 +170,24 @@ export function normalizeRow(row, index) {
     orders: ordersFromSheet,
     earningPerHour: earningPerHourRaw == null || String(earningPerHourRaw).trim() === '' ? null : earningPerHourRaw,
     joiningBonus: joiningBonusRaw == null || String(joiningBonusRaw).trim() === '' ? null : joiningBonusRaw,
+    },
+    issue: null,
   }
 }
 
 export function normalizeSheetRows(rows) {
   if (!Array.isArray(rows)) return []
-  return rows.map((row, i) => normalizeRow(row, i)).filter(Boolean)
+  return rows.map((row, i) => normalizeRowWithIssue(row, i).record).filter(Boolean)
+}
+
+export function normalizeSheetRowsWithIssues(rows) {
+  if (!Array.isArray(rows)) return { records: [], issues: [] }
+  const records = []
+  const issues = []
+  rows.forEach((row, i) => {
+    const { record, issue } = normalizeRowWithIssue(row, i)
+    if (record) records.push(record)
+    if (issue) issues.push(issue)
+  })
+  return { records, issues }
 }

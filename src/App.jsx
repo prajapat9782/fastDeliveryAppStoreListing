@@ -12,7 +12,7 @@ import MobileFiltersSheet from './components/MobileFiltersSheet'
 import { findNearbyStores } from './utils/haversine'
 
 export default function App() {
-  const { stores, loading, usedMock } = useStoreData()
+  const { stores, loading, usedMock, invalidRows } = useStoreData()
   const [city, setCity] = useState('')
   const [client, setClient] = useState('')
   const [storeId, setStoreId] = useState('')
@@ -21,6 +21,7 @@ export default function App() {
   const [nearbyExpanded, setNearbyExpanded] = useState(false)
   const [nearbyAllOpen, setNearbyAllOpen] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [invalidOpen, setInvalidOpen] = useState(false)
 
   useEffect(() => {
     setStoreId('')
@@ -95,6 +96,22 @@ export default function App() {
       {usedMock && (
         <div className="shrink-0 border-b border-amber-200/80 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-900">
           Using offline mock data — sheet unreachable or produced no valid rows.
+        </div>
+      )}
+
+      {invalidRows.length > 0 && (
+        <div className="shrink-0 border-b border-blue-200/80 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-900">
+          <span>Skipped {invalidRows.length} invalid row(s) from sheet.</span>{' '}
+          <button
+            type="button"
+            onClick={() => setInvalidOpen(true)}
+            className="inline-flex items-center gap-1 rounded-md bg-white/70 px-2 py-0.5 font-semibold text-blue-800 hover:bg-white"
+          >
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-blue-300 text-[10px] leading-none">
+              i
+            </span>
+            Details
+          </button>
         </div>
       )}
 
@@ -217,6 +234,50 @@ export default function App() {
           }
         }}
       />
+
+      {invalidOpen && (
+        <div
+          className="fixed inset-0 z-[3200] flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Invalid rows details"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setInvalidOpen(false)
+          }}
+        >
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h2 className="text-sm font-bold text-slate-900">
+                Invalid rows ({invalidRows.length})
+              </h2>
+              <button
+                type="button"
+                onClick={() => setInvalidOpen(false)}
+                className="rounded-xl bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-[65vh] overflow-y-auto px-4 py-3">
+              <ul className="space-y-2">
+                {invalidRows.map((item, idx) => (
+                  <li key={`${item.row}-${item.store_name}-${idx}`} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Row {item.row}: {item.store_name}
+                    </p>
+                    <p className="text-xs text-slate-600">{item.reason}</p>
+                    {Array.isArray(item.missing_keys) && item.missing_keys.length > 0 && (
+                      <p className="mt-1 text-[11px] font-medium text-slate-500">
+                        Missing keys: {item.missing_keys.join(', ')}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

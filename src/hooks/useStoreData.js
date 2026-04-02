@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { normalizeSheetRows } from '../utils/normalizeSheetRow'
+import { normalizeSheetRows, normalizeSheetRowsWithIssues } from '../utils/normalizeSheetRow'
 import mockStores from '../data/mockStores.json'
 
 const SHEET_URL =
@@ -14,6 +14,7 @@ export function useStoreData() {
   const [stores, setStores] = useState([])
   const [loading, setLoading] = useState(true)
   const [usedMock, setUsedMock] = useState(false)
+  const [invalidRows, setInvalidRows] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -21,17 +22,20 @@ export function useStoreData() {
     async function load() {
       setLoading(true)
       setUsedMock(false)
+      setInvalidRows([])
       try {
         const res = await fetch(SHEET_URL)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const rows = await res.json()
-        const normalized = normalizeSheetRows(rows)
+        const { records, issues } = normalizeSheetRowsWithIssues(rows)
         if (!cancelled) {
-          if (normalized.length === 0) {
+          if (records.length === 0) {
             setStores(normalizeSheetRows(mockStores))
             setUsedMock(true)
+            setInvalidRows(issues)
           } else {
-            setStores(normalized)
+            setStores(records)
+            setInvalidRows(issues)
           }
         }
       } catch (e) {
@@ -39,6 +43,7 @@ export function useStoreData() {
         if (!cancelled) {
           setStores(normalizeSheetRows(mockStores))
           setUsedMock(true)
+          setInvalidRows([])
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -51,5 +56,5 @@ export function useStoreData() {
     }
   }, [])
 
-  return { stores, loading, usedMock, sheetUrl: SHEET_URL }
+  return { stores, loading, usedMock, invalidRows, sheetUrl: SHEET_URL }
 }
