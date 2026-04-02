@@ -29,9 +29,22 @@ function BrandIcon({ client }) {
 /**
  * Floating “Nearby stores” card — logos from web, all brands within radius (full dataset).
  */
-export default function NearbyList({ origin, items, distanceKm, onViewAll }) {
+export default function NearbyList({
+  origin,
+  items,
+  distanceKm,
+  onViewAll,
+  expanded,
+  onToggleExpanded,
+}) {
+  const heightClass = expanded
+    ? 'max-h-[min(68vh,520px)]'
+    : 'max-h-[min(52vh,420px)]'
+
   return (
-    <div className="pointer-events-auto flex max-h-[min(52vh,420px)] w-[min(100%,340px)] flex-col rounded-2xl border border-slate-100 bg-white shadow-float">
+    <div
+      className={`pointer-events-auto flex w-[min(100%,340px)] flex-col rounded-2xl border border-slate-100 bg-white shadow-float ${heightClass}`}
+    >
       <div className="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
         <div>
           <h3 className="text-sm font-bold text-slate-900">
@@ -44,13 +57,23 @@ export default function NearbyList({ origin, items, distanceKm, onViewAll }) {
           )}
         </div>
         {origin && items.length > 0 && (
-          <button
-            type="button"
-            onClick={onViewAll}
-            className="shrink-0 text-xs font-semibold text-primary hover:underline"
-          >
-            View all
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onViewAll}
+              className="shrink-0 text-xs font-semibold text-primary hover:underline"
+            >
+              View all
+            </button>
+            <button
+              type="button"
+              onClick={onToggleExpanded}
+              className="shrink-0 rounded-xl bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100"
+              aria-label={expanded ? 'Collapse nearby tile' : 'Expand nearby tile'}
+            >
+              {expanded ? 'Collapse' : 'Expand'}
+            </button>
+          </div>
         )}
       </div>
 

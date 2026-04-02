@@ -32,6 +32,58 @@ export function normalizeRow(row, index) {
     storeName = [cityRaw, client, 'Hub'].filter(Boolean).join(' ').trim() || `Store ${index + 1}`
   }
 
+  // These columns exist in your reference HTML sheet parsing (names include a couple typos).
+  const totalRaiderRaw =
+    row.TotalRaider ??
+    row.totalRaider ??
+    row['Tota rider'] ??
+    row['Total rider'] ??
+    row['total rider'] ??
+    row.total_rider
+
+  const totalRaiderReqRaw =
+    row.TotalRaiderReq ??
+    row.totalRaiderReq ??
+    row['Total rider req'] ??
+    row['Total rider required'] ??
+    row['total rider req'] ??
+    row.total_rider_req
+
+  const cpoCountRaw = row.CPO ?? row.cpo ?? 0
+
+  // Sheet field in the reference: "TEAM leader" (values like Yes/Y/1 or 0)
+  const teamLeaderRaw =
+    row['TEAM leader'] ??
+    row['Team leader'] ??
+    row.teamLeader ??
+    row.team_leader ??
+    0
+
+  const teamLeaderHas = (() => {
+    const v = teamLeaderRaw == null ? '' : String(teamLeaderRaw).trim().toLowerCase()
+    return v === '1' || v === 'yes' || v === 'y' || v === 'true'
+  })()
+
+  const teamLeaderNameRaw =
+    row['Team leader NAME'] ??
+    row['Team leader Name'] ??
+    row.teamLeaderName ??
+    row.team_leader_name ??
+    ''
+
+  const teamLeaderName = teamLeaderNameRaw.toString().trim()
+
+  // Track orders from the sheet: any column header that contains "orders".
+  const ordersFromSheet = (() => {
+    for (const [k, v] of Object.entries(row || {})) {
+      if (!k) continue
+      if (!k.toString().toLowerCase().includes('orders')) continue
+      const num = Number(String(v).replace(/,/g, '').trim())
+      if (!Number.isNaN(num)) return num
+    }
+    return null
+  })()
+
   return {
     id: `store-${index}-${lat.toFixed(4)}-${lng.toFixed(4)}`,
     city: cityRaw,
@@ -39,6 +91,12 @@ export function normalizeRow(row, index) {
     store_name: storeName,
     lat,
     lng,
+    totalRaider: Number(totalRaiderRaw) || 0,
+    totalRaiderReq: Number(totalRaiderReqRaw) || 0,
+    cpo: Number(cpoCountRaw) || 0,
+    teamLeaderHas,
+    teamLeaderName,
+    orders: ordersFromSheet,
   }
 }
 

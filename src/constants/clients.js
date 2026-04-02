@@ -2,7 +2,7 @@
 export const CLIENT_OPTIONS = [
   'Zepto',
   'Blinkit',
-  'Zudio',
+  // 'Zudio',
   'Instamart',
   'Flipkart',
 ]
@@ -12,7 +12,6 @@ const CLIENT_ALIASES = {
   zep: 'Zepto',
   blinkit: 'Blinkit',
   blink: 'Blinkit',
-  zudio: 'Zudio',
   instamart: 'Instamart',
   'insta mart': 'Instamart',
   insta: 'Instamart',
@@ -25,7 +24,6 @@ const CLIENT_ALIASES = {
 export const CLIENT_COLORS = {
   Zepto: '#7C3AED',
   Blinkit: '#FBBF77',
-  Zudio: '#3B82F6',
   Instamart: '#EF4444',
   Flipkart: '#92400E',
 }
@@ -34,7 +32,6 @@ export const CLIENT_COLORS = {
 export const CLIENT_EMOJI = {
   Zepto: '⚡',
   Blinkit: '🛒',
-  Zudio: '👕',
   Instamart: '🏪',
   Flipkart: '📦',
 }
@@ -48,8 +45,7 @@ export const CLIENT_ICON_URL = {
   Blinkit: 'https://cdn.siasat.com/wp-content/uploads/2023/02/Blinkit.jpg',
   Flipkart:
     'https://static.vecteezy.com/system/resources/thumbnails/054/650/802/small_2x/flipkart-logo-rounded-flipkart-logo-free-download-flipkart-logo-free-png.png',
-  Zudio: 'https://images.seeklogo.com/logo-png/44/2/zudio-logo-svg-vector.png',
-  Instamart: 'https://1000logos.net/wp-content/uploads/2021/05/Swiggy-Instamart-Logo.png',
+  Instamart: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9JZmxlKwCiyRDy_puFiw-lww6Rx2O7QhXDw&s',
 }
 
 export function resolveCanonicalClient(raw) {

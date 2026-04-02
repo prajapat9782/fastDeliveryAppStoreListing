@@ -6,7 +6,12 @@ export default function ActiveSelectionCard({ store }) {
   if (!store) return null
 
   const color = CLIENT_COLORS[store.client] ?? '#6D28D9'
-  const orders = ordersTodayFromId(store.id)
+  const orders =
+    store.orders == null ? ordersTodayFromId(store.id) : Number(store.orders)
+  const totalRaider = Number(store.totalRaider ?? 0)
+  const totalRaiderReq = Number(store.totalRaiderReq ?? 0)
+  const cpoCount = Number(store.cpo ?? 0)
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lng}`
 
   return (
     <div className="relative pointer-events-auto w-[min(100%,320px)] rounded-2xl border border-slate-100 bg-white p-4 pr-14 shadow-float">
@@ -16,15 +21,20 @@ export default function ActiveSelectionCard({ store }) {
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-xl bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase text-slate-400">Status</p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Open now
-          </p>
-        </div>
-        <div className="rounded-xl bg-slate-50 px-3 py-2">
           <p className="text-[10px] font-semibold uppercase text-slate-400">Orders</p>
           <p className="mt-0.5 text-sm font-semibold text-slate-800">{orders.toLocaleString()} today</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase text-slate-400">TotalRaider</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-800">{totalRaider.toLocaleString()}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase text-slate-400">Total Raider required</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-800">{totalRaiderReq.toLocaleString()}</p>
+        </div>
+        <div className="rounded-xl bg-slate-50 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase text-slate-400">CPO count</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-800">{cpoCount.toLocaleString()}</p>
         </div>
       </div>
 
@@ -32,7 +42,10 @@ export default function ActiveSelectionCard({ store }) {
         type="button"
         className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl text-primary transition hover:bg-primary-light"
         style={{ color }}
-        aria-label="Directions"
+        aria-label="Open in Maps"
+        onClick={() => {
+          window.open(mapsUrl, '_blank', 'noopener,noreferrer')
+        }}
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

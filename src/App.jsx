@@ -6,6 +6,9 @@ import MapView from './components/MapView'
 import MapLegend from './components/MapLegend'
 import ActiveSelectionCard from './components/ActiveSelectionCard'
 import NearbyList from './components/NearbyList'
+import NearbyAllDialog from './components/NearbyAllDialog'
+import MobileSelectionSheet from './components/MobileSelectionSheet'
+import MobileFiltersSheet from './components/MobileFiltersSheet'
 import { findNearbyStores } from './utils/haversine'
 
 export default function App() {
@@ -15,6 +18,9 @@ export default function App() {
   const [storeId, setStoreId] = useState('')
   const [distanceKm, setDistanceKm] = useState(20)
   const [selectedFromMap, setSelectedFromMap] = useState(null)
+  const [nearbyExpanded, setNearbyExpanded] = useState(false)
+  const [nearbyAllOpen, setNearbyAllOpen] = useState(false)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
   useEffect(() => {
     setStoreId('')
@@ -23,6 +29,12 @@ export default function App() {
   useEffect(() => {
     setSelectedFromMap(null)
   }, [city, client, storeId])
+
+  // Close dialogs / reset tile size when the selection changes.
+  useEffect(() => {
+    setNearbyAllOpen(false)
+    setNearbyExpanded(false)
+  }, [selectedFromMap])
 
   const cities = useMemo(() => {
     const u = new Set(stores.map((s) => s.city).filter(Boolean))
@@ -78,7 +90,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-surface">
-      <TopNav />
+      <TopNav onOpenFilters={() => setMobileFiltersOpen(true)} />
 
       {usedMock && (
         <div className="shrink-0 border-b border-amber-200/80 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-900">
@@ -87,7 +99,7 @@ export default function App() {
       )}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="flex max-h-[45vh] shrink-0 flex-col border-slate-200 bg-white px-5 py-6 shadow-card lg:max-h-none lg:h-full lg:w-[340px] lg:border-r lg:px-6">
+        <aside className="hidden lg:flex max-h-[45vh] shrink-0 flex-col border-slate-200 bg-white px-5 py-6 shadow-card lg:max-h-none lg:h-full lg:w-[340px] lg:border-r lg:px-6">
           <Filters
             cities={cities}
             city={city}
@@ -103,7 +115,7 @@ export default function App() {
           />
         </aside>
 
-        <div className="relative min-h-0 min-w-0 flex-1 p-3 md:p-4 lg:p-5">
+        <div className="relative min-h-0 min-w-0 flex-1 p-0 md:p-4 lg:p-5">
           {stores.length === 0 ? (
             <div className="flex h-full min-h-[240px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white text-slate-500">
               No store data available.
@@ -120,26 +132,58 @@ export default function App() {
                   useFitBounds={useFitBounds}
                 />
 
-                <div className="pointer-events-none absolute left-3 top-3 z-[1000] md:left-4 md:top-4">
+                <div className="pointer-events-none absolute left-3 top-3 z-[1000] hidden md:block md:left-4 md:top-4">
                   <MapLegend />
                 </div>
 
-                <div className="pointer-events-none absolute right-3 top-3 z-[1000] max-w-[calc(100%-1rem)] md:right-4 md:top-4">
-                  <div className="pointer-events-auto">
-                    <ActiveSelectionCard store={selectedFromMap} />
+                {selectedFromMap && (
+                  <div className="pointer-events-none absolute right-3 top-3 z-[1000] max-w-[calc(100%-1rem)] md:right-4 md:top-4">
+                    <div className="hidden pointer-events-auto md:block">
+                      <ActiveSelectionCard store={selectedFromMap} />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="pointer-events-none absolute bottom-3 right-3 z-[1000] max-w-[calc(100%-1.5rem)] md:bottom-4 md:right-4">
-                  <div className="pointer-events-auto">
-                    <NearbyList
-                      origin={selectedFromMap}
-                      items={nearby}
-                      distanceKm={distanceKm}
-                      onViewAll={() => {}}
-                    />
+                {selectedFromMap && (
+                  <div className="pointer-events-none absolute bottom-3 right-3 z-[1000] max-w-[calc(100%-1.5rem)] md:bottom-4 md:right-4">
+                    <div className="hidden pointer-events-auto md:block">
+                      <NearbyList
+                        origin={selectedFromMap}
+                        items={nearby}
+                        distanceKm={distanceKm}
+                        expanded={nearbyExpanded}
+                        onToggleExpanded={() => setNearbyExpanded((v) => !v)}
+                        onViewAll={() => setNearbyAllOpen(true)}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {selectedFromMap && (
+                  <NearbyAllDialog
+                    open={nearbyAllOpen}
+                    origin={selectedFromMap}
+                    items={nearby}
+                    distanceKm={distanceKm}
+                    onClose={() => setNearbyAllOpen(false)}
+                    onPickStore={(s) => {
+                      setSelectedFromMap(s)
+                      setNearbyAllOpen(false)
+                    }}
+                  />
+                )}
+
+                {/* Mobile bottom sheet */}
+                {selectedFromMap && (
+                  <MobileSelectionSheet
+                    store={selectedFromMap}
+                    nearbyItems={nearby}
+                    distanceKm={distanceKm}
+                    onClose={() => setSelectedFromMap(null)}
+                    onOpenAll={() => setNearbyAllOpen(true)}
+                    onPickStore={(s) => setSelectedFromMap(s)}
+                  />
+                )}
 
                 {filteredForMap.length === 0 && (
                   <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center rounded-2xl bg-white/75 backdrop-blur-[2px]">
@@ -153,6 +197,26 @@ export default function App() {
           )}
         </div>
       </div>
+
+      <MobileFiltersSheet
+        open={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        cities={cities}
+        city={city}
+        client={client}
+        storeId={storeId}
+        storeOptions={storeOptions}
+        distanceKm={distanceKm}
+        onReset={handleReset}
+        onApply={({ city: nextCity, client: nextClient, storeId: nextStoreId, distanceKm: nextDistanceKm }) => {
+          setCity(nextCity ?? '')
+          setClient(nextClient ?? '')
+          setStoreId(nextStoreId ?? '')
+          if (typeof nextDistanceKm === 'number' && Number.isFinite(nextDistanceKm)) {
+            setDistanceKm(nextDistanceKm)
+          }
+        }}
+      />
     </div>
   )
 }

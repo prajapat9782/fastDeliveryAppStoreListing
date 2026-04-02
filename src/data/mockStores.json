@@ -29,13 +29,6 @@
   },
   {
     "city": "Noida",
-    "client": "Zudio",
-    "store_name": "Noida Zudio Flagship",
-    "latitude": 28.5355,
-    "longitude": 77.391
-  },
-  {
-    "city": "Noida",
     "client": "Blinkit",
     "store_name": "Sector 18 Blinkit",
     "latitude": 28.5706,

@@ -39,7 +39,7 @@ Publish the sheet so **opensheet** (or your JSON proxy) can read it. First row =
 
 The bundled URL matches the older sheet shape: `City`, `Client`, `lat`, `lng`. Store names are synthesized when `store_name` is missing.
 
-**Clients** must resolve to one of: **Zepto, Blinkit, Zudio, Instamart, Flipkart** (case-insensitive). Rows with unknown clients are skipped.
+**Clients** must resolve to one of: **Zepto, Blinkit, Instamart, Flipkart** (case-insensitive). Rows with unknown clients are skipped.
 
 ## Mock fallback
 
