@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { CLIENT_COLORS, CLIENT_EMOJI, CLIENT_ICON_URL } from '../constants/clients'
 
 function BrandIcon({ client }) {
@@ -40,6 +40,20 @@ export default function NearbyList({
   const heightClass = expanded
     ? 'max-h-[min(68vh,520px)]'
     : 'max-h-[min(52vh,420px)]'
+
+  const tabs = useMemo(() => {
+    const clients = Array.from(new Set((items || []).map((s) => s.client).filter(Boolean)))
+    clients.sort((a, b) => String(a).localeCompare(String(b)))
+    return ['All', ...clients]
+  }, [items])
+
+  const [activeTab, setActiveTab] = useState('All')
+
+  const visibleItems = useMemo(() => {
+    if (!origin) return []
+    if (activeTab === 'All') return items
+    return items.filter((s) => s.client === activeTab)
+  }, [origin, items, activeTab])
 
   return (
     <div
@@ -98,8 +112,31 @@ export default function NearbyList({
         )}
 
         {origin && items.length > 0 && (
+          <>
+            <div className="border-b border-slate-100 px-3 py-2">
+              <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
+                {tabs.map((t) => {
+                  const active = t === activeTab
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setActiveTab(t)}
+                      className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-bold transition ${
+                        active
+                          ? 'bg-primary text-white'
+                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
           <ul className="divide-y divide-slate-100 py-1">
-            {items.map((s) => (
+            {visibleItems.map((s) => (
               <li key={s.id} className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50/80">
                 <BrandIcon client={s.client} />
                 <div className="min-w-0 flex-1">
@@ -113,6 +150,7 @@ export default function NearbyList({
               </li>
             ))}
           </ul>
+          </>
         )}
       </div>
     </div>

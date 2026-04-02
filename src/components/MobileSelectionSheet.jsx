@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react'
 import { CLIENT_COLORS, CLIENT_EMOJI, CLIENT_ICON_URL } from '../constants/clients'
-import { formatAddressLine, ordersTodayFromId } from '../utils/selectionMeta'
+import { formatAddressLine } from '../utils/selectionMeta'
 
 function BrandIcon({ client }) {
   const url = CLIENT_ICON_URL[client]
@@ -58,6 +59,15 @@ function openSystemMaps({ lat, lng, label }) {
   }
 }
 
+function formatLooseValue(v) {
+  if (v == null) return '—'
+  const s = String(v).trim()
+  if (!s) return '—'
+  const n = Number(s.replace(/,/g, ''))
+  if (Number.isFinite(n)) return n.toLocaleString()
+  return s
+}
+
 export default function MobileSelectionSheet({
   store,
   nearbyItems,
@@ -69,12 +79,24 @@ export default function MobileSelectionSheet({
   if (!store) return null
 
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lng}`
-  const orders = store.orders == null ? ordersTodayFromId(store.id) : Number(store.orders)
   const totalRaider = Number(store.totalRaider ?? 0)
   const totalRaiderReq = Number(store.totalRaiderReq ?? 0)
-  const cpoCount = Number(store.cpo ?? 0)
-  const deltaPct = ((orders % 25) + 8) | 0
   const ridersRequiredPadded = String(Math.max(0, Math.round(totalRaiderReq))).padStart(2, '0')
+  const earningPerHour = store.earningPerHour
+  const joiningBonus = store.joiningBonus
+
+  const tabs = useMemo(() => {
+    const clients = Array.from(new Set((nearbyItems || []).map((s) => s.client).filter(Boolean)))
+    clients.sort((a, b) => String(a).localeCompare(String(b)))
+    return ['All', ...clients]
+  }, [nearbyItems])
+
+  const [activeTab, setActiveTab] = useState('All')
+
+  const visibleNearby = useMemo(() => {
+    if (activeTab === 'All') return nearbyItems
+    return nearbyItems.filter((s) => s.client === activeTab)
+  }, [nearbyItems, activeTab])
 
   return (
     <div className="fixed inset-0 z-[2800] flex items-end justify-center bg-black/10 p-4 pt-16 backdrop-blur-[2px] md:hidden">
@@ -142,27 +164,25 @@ export default function MobileSelectionSheet({
         <div className="px-4 py-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-slate-50 px-3 py-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Orders</p>
-              <p className="mt-2 text-2xl font-black text-slate-900">{formatCompactNumber(orders)}</p>
-              <p className="mt-1 text-[10px] font-bold text-emerald-600">+{deltaPct}%</p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 px-3 py-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Riders</p>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Rider</p>
               <p className="mt-2 text-2xl font-black text-slate-900">{formatCompactNumber(totalRaider)}</p>
               <p className="mt-1 text-[10px] font-bold text-slate-500">Active</p>
             </div>
 
             <div className="rounded-2xl bg-slate-50 px-3 py-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Riders Required</p>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Total Rider Req</p>
               <p className="mt-2 text-2xl font-black text-slate-900">{ridersRequiredPadded}</p>
               <p className="mt-1 text-[10px] font-bold text-red-600">Urgent</p>
             </div>
 
             <div className="rounded-2xl bg-slate-50 px-3 py-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">COP COUNT</p>
-              <p className="mt-2 text-2xl font-black text-slate-900">{formatCompactNumber(cpoCount)}</p>
-              <p className="mt-1 text-[10px] font-bold text-primary/80">Pending</p>
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Earning per hour</p>
+              <p className="mt-2 text-2xl font-black text-slate-900">{formatLooseValue(earningPerHour)}</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 px-3 py-3">
+              <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Joining bonus</p>
+              <p className="mt-2 text-2xl font-black text-slate-900">{formatLooseValue(joiningBonus)}</p>
             </div>
           </div>
 
@@ -183,30 +203,52 @@ export default function MobileSelectionSheet({
                 No nearby stores in range
               </div>
             ) : (
-              <div className="-mx-4 overflow-x-auto px-4 pb-2">
-                <div className="flex gap-2.5">
-                  {nearbyItems.slice(0, 10).map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => onPickStore(s)}
-                      className="w-[220px] shrink-0 rounded-2xl border border-slate-100 bg-white px-3 py-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.06)] hover:bg-slate-50"
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="mt-0.5">
-                          <BrandIcon client={s.client} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-extrabold text-slate-900">{s.store_name}</p>
-                          <p className="mt-1 truncate text-[10px] font-bold uppercase text-primary/70">{s.client}</p>
-                          <p className="mt-1 text-[10px] font-bold text-slate-500">{s.distanceKm.toFixed(1)} km away</p>
-                          <p className="mt-1 truncate text-[10px] font-semibold text-slate-400">{s.city}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+              <>
+                <div className="-mx-4 overflow-x-auto px-4 pb-2">
+                  <div className="flex gap-2">
+                    {tabs.map((t) => {
+                      const active = t === activeTab
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setActiveTab(t)}
+                          className={`shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-extrabold transition ${
+                            active ? 'bg-primary text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+
+                <div className="-mx-4 overflow-x-auto px-4 pb-2">
+                  <div className="flex gap-2.5">
+                    {visibleNearby.slice(0, 10).map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => onPickStore(s)}
+                        className="w-[220px] shrink-0 rounded-2xl border border-slate-100 bg-white px-3 py-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.06)] hover:bg-slate-50"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="mt-0.5">
+                            <BrandIcon client={s.client} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-extrabold text-slate-900">{s.store_name}</p>
+                            <p className="mt-1 truncate text-[10px] font-bold uppercase text-primary/70">{s.client}</p>
+                            <p className="mt-1 text-[10px] font-bold text-slate-500">{s.distanceKm.toFixed(1)} km away</p>
+                            <p className="mt-1 truncate text-[10px] font-semibold text-slate-400">{s.city}</p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

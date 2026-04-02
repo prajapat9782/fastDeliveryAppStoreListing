@@ -98,17 +98,57 @@ function StoreMarker({ store, selected, onClick }) {
     const color = CLIENT_COLORS[store.client] ?? '#64748b'
     const url = CLIENT_ICON_URL[store.client] ?? ''
     const emoji = CLIENT_EMOJI[store.client] ?? '📍'
-    const size = selected ? 48 : 40
-    const border = selected ? 4 : 3
+    const req = Math.max(0, Math.round(Number(store.totalRaiderReq ?? 0) || 0))
     const safeUrl = url.replace(/"/g, '&quot;')
+
+    // Old/simple marker (no required-rider badge)
+    if (!req) {
+      const size = selected ? 48 : 40
+      const border = selected ? 4 : 3
+      const innerOld = url
+        ? `<img src="${safeUrl}" alt="" draggable="false" width="${size}" height="${size}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'" />`
+        : `<span style="font-size:${selected ? 20 : 17}px;line-height:1;">${emoji}</span>`
+
+      return L.divIcon({
+        className: 'marker-pin-wrap',
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;border:${border}px solid #ffffff;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:none;">${innerOld}</div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+      })
+    }
+
+    // New pin marker (shows required-rider badge)
+    const width = selected ? 56 : 50
+    const height = selected ? 72 : 64
+    const innerSize = selected ? 34 : 30
     const inner = url
-      ? `<img src="${safeUrl}" alt="" draggable="false" width="${size}" height="${size}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'" />`
-      : `<span style="font-size:${selected ? 20 : 17}px;line-height:1;">${emoji}</span>`
+      ? `<img src="${safeUrl}" alt="" draggable="false" width="${innerSize}" height="${innerSize}" style="width:${innerSize}px;height:${innerSize}px;object-fit:cover;border-radius:12px;display:block;" onerror="this.style.display='none'" />`
+      : `<span style="font-size:${selected ? 18 : 16}px;line-height:1;">${emoji}</span>`
+    const badge = `<div style="position:absolute;right:-2px;top:-4px;min-width:26px;height:26px;padding:0 8px;border-radius:999px;background:#F59E0B;border:2px solid rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;font-weight:900;font-size:13px;color:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,0.18);">${req}</div>`
+
+    // Pin-like background (dark) with subtle stroke
+    const pinSvg = `
+      <svg width="${width}" height="${height}" viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg" style="display:block">
+        <path d="M32 78c-7.5-12.8-21-28.7-21-42.5C11 20.4 20.4 11 32 11s21 9.4 21 24.5C53 49.3 39.5 65.2 32 78z" fill="#1F2A44"/>
+        <path d="M32 78c-7.5-12.8-21-28.7-21-42.5C11 20.4 20.4 11 32 11s21 9.4 21 24.5C53 49.3 39.5 65.2 32 78z" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="2"/>
+        <circle cx="32" cy="35" r="18" fill="#0F172A" opacity="0.65"/>
+        <circle cx="32" cy="35" r="18" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+      </svg>
+    `
+
     return L.divIcon({
       className: 'marker-pin-wrap',
-      html: `<div style="width:${size}px;height:${size}px;border-radius:50%;border:${border}px solid #ffffff;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:none;">${inner}</div>`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
+      html: `
+        <div style="position:relative;width:${width}px;height:${height}px;">
+          ${pinSvg}
+          <div style="position:absolute;left:50%;top:35px;transform:translate(-50%,-50%);width:${innerSize}px;height:${innerSize}px;border-radius:14px;background:${color};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 10px 22px rgba(15,23,42,0.22);border:2px solid rgba(255,255,255,0.9);">
+            ${inner}
+          </div>
+          ${badge}
+        </div>
+      `,
+      iconSize: [width, height],
+      iconAnchor: [width / 2, height],
     })
   }, [store.client, store.id, selected])
 

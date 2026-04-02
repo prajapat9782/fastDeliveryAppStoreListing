@@ -18,6 +18,7 @@ export function normalizeRow(row, index) {
   if (!client) return null
 
   let storeName = (
+    row['Store Name'] ??
     row.store_name ??
     row.storeName ??
     row['store name'] ??
@@ -50,6 +51,24 @@ export function normalizeRow(row, index) {
     row.total_rider_req
 
   const cpoCountRaw = row.CPO ?? row.cpo ?? 0
+
+  // Additional metrics (new columns)
+  const earningPerHourRaw =
+    row['Earning/hours'] ??
+    row['Earning per hour'] ??
+    row['Earning/hour'] ??
+    row.earningPerHour ??
+    row.earning_per_hour ??
+    row.earning
+
+  const joiningBonusRaw =
+    row['Joining Bonous'] ??
+    row['Joining Bonus'] ??
+    row['Joining bonous'] ??
+    row['Joining bonus'] ??
+    row.joiningBonus ??
+    row.joining_bonus ??
+    row.bonus
 
   // Sheet field in the reference: "TEAM leader" (values like Yes/Y/1 or 0)
   const teamLeaderRaw =
@@ -97,6 +116,8 @@ export function normalizeRow(row, index) {
     teamLeaderHas,
     teamLeaderName,
     orders: ordersFromSheet,
+    earningPerHour: earningPerHourRaw == null || String(earningPerHourRaw).trim() === '' ? null : earningPerHourRaw,
+    joiningBonus: joiningBonusRaw == null || String(joiningBonusRaw).trim() === '' ? null : joiningBonusRaw,
   }
 }
 
