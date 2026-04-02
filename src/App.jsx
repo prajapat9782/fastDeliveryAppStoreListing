@@ -11,7 +11,6 @@ import MobileSelectionSheet from './components/MobileSelectionSheet'
 import MobileFiltersSheet from './components/MobileFiltersSheet'
 import { findNearbyStores, haversineKm } from './utils/haversine'
 import { computeRiderRequirementStats } from './utils/riderRequirementStats'
-import { RiderRequirementSidebar } from './components/RiderRequirementSummary'
 import { normalizeZoneLabel } from './utils/zone'
 
 export default function App() {
@@ -196,11 +195,6 @@ export default function App() {
             onReset={handleReset}
             onClearMapSelection={clearMapSelection}
           />
-          <RiderRequirementSidebar
-            cityName={city}
-            total={riderStats.total}
-            byClient={riderStats.byClient}
-          />
         </aside>
 
         <div className="relative min-h-0 min-w-0 flex-1 p-0 md:p-4 lg:p-5">
@@ -221,11 +215,7 @@ export default function App() {
                 />
 
                 <div className="pointer-events-none absolute left-3 top-3 z-[1000] hidden md:block md:left-4 md:top-4">
-                  <MapLegend
-                    cityName={city}
-                    riderTotal={riderStats.total}
-                    riderByClient={riderStats.byClient}
-                  />
+                  <MapLegend riderByClient={riderStats.byClient} citySelected={Boolean(city)} />
                 </div>
 
                 {selectedFromMap && (
