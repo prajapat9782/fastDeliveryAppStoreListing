@@ -1,16 +1,7 @@
 import { useMemo, useState } from 'react'
 
-function pad2(n) {
-  return String(n).padStart(2, '0')
-}
+const STATIC_PASSWORD = '123456'
 
-/**
- * Password rule:
- * - password = DDHH (day-of-month + 24h hour), both zero-padded
- * - Example: Apr 2, 1pm => day=02, hour=13 => "0213"
- *
- * Unlock persists for the current hour via localStorage.
- */
 export default function LockGate({ children }) {
   const storageKey = useMemo(() => `store-locator:unlock:session`, [])
   const [unlocked, setUnlocked] = useState(() => {
@@ -25,8 +16,8 @@ export default function LockGate({ children }) {
   const [error, setError] = useState('')
 
   const getExpectedPassword = () => {
-    const now = new Date()
-    return `${pad2(now.getDate())}${pad2(now.getHours())}`
+    // Previously: DDHH (day + 24h hour). Now static password.
+    return STATIC_PASSWORD
   }
 
   if (unlocked) return children
@@ -44,7 +35,7 @@ export default function LockGate({ children }) {
             value={value}
             onChange={(e) => {
               setError('')
-              setValue(e.target.value.replace(/[^\d]/g, '').slice(0, 4))
+              setValue(e.target.value.replace(/[^\d]/g, '').slice(0, 6))
             }}
             onKeyDown={(e) => {
               if (e.key !== 'Enter') return
