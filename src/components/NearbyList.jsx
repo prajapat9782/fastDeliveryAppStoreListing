@@ -55,6 +55,16 @@ export default function NearbyList({
     return items.filter((s) => s.client === activeTab)
   }, [origin, items, activeTab])
 
+  const reqChip = (s) => {
+    const req = Math.max(0, Math.round(Number(s?.totalRaiderReq ?? 0) || 0))
+    if (!req) return null
+    return (
+      <span className="ml-1 inline-flex items-center rounded-lg bg-amber-100 px-2 py-0.5 font-mono text-[10px] font-black text-amber-900">
+        {req}
+      </span>
+    )
+  }
+
   return (
     <div
       className={`pointer-events-auto flex w-[min(100%,340px)] flex-col rounded-2xl border border-slate-100 bg-white shadow-float ${heightClass}`}
@@ -141,7 +151,10 @@ export default function NearbyList({
                 <BrandIcon client={s.client} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-900">{s.store_name}</p>
-                  <p className="truncate text-xs font-medium text-primary/90">{s.client}</p>
+                  <p className="flex items-center truncate text-xs font-medium text-primary/90">
+                    <span className="truncate">{s.client}</span>
+                    {reqChip(s)}
+                  </p>
                   <p className="truncate text-[11px] text-slate-400">{s.city}</p>
                 </div>
                 <span className="shrink-0 rounded-lg bg-primary-light px-2 py-1 font-mono text-xs font-bold text-primary">

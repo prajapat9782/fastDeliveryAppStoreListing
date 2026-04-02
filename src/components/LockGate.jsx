@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 function pad2(n) {
   return String(n).padStart(2, '0')
@@ -12,22 +12,10 @@ function pad2(n) {
  * Unlock persists for the current hour via localStorage.
  */
 export default function LockGate({ children }) {
-  const timeKey = useMemo(() => {
-    const now = new Date()
-    const dd = pad2(now.getDate())
-    const hh = pad2(now.getHours())
-    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${dd}-${hh}`
-  }, [])
-
-  const expected = useMemo(() => {
-    const now = new Date()
-    return `${pad2(now.getDate())}${pad2(now.getHours())}`
-  }, [])
-
-  const storageKey = `store-locator:unlock:${timeKey}`
+  const storageKey = useMemo(() => `store-locator:unlock:session`, [])
   const [unlocked, setUnlocked] = useState(() => {
     try {
-      return window.localStorage.getItem(storageKey) === '1'
+      return window.sessionStorage.getItem(storageKey) === '1'
     } catch {
       return false
     }
@@ -36,17 +24,10 @@ export default function LockGate({ children }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    // If hour changes while tab is open, auto re-lock.
-    const t = window.setInterval(() => {
-      const now = new Date()
-      const keyNow = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}-${pad2(now.getHours())}`
-      if (keyNow !== timeKey) {
-        setUnlocked(false)
-      }
-    }, 30_000)
-    return () => window.clearInterval(t)
-  }, [timeKey])
+  const getExpectedPassword = () => {
+    const now = new Date()
+    return `${pad2(now.getDate())}${pad2(now.getHours())}`
+  }
 
   if (unlocked) return children
 
@@ -67,9 +48,9 @@ export default function LockGate({ children }) {
             }}
             onKeyDown={(e) => {
               if (e.key !== 'Enter') return
-              if (value === expected) {
+              if (value === getExpectedPassword()) {
                 try {
-                  window.localStorage.setItem(storageKey, '1')
+                  window.sessionStorage.setItem(storageKey, '1')
                 } catch {
                   // ignore
                 }
@@ -89,9 +70,9 @@ export default function LockGate({ children }) {
           type="button"
           className="mt-4 w-full rounded-2xl bg-primary py-3 text-sm font-extrabold text-white shadow-sm hover:bg-primary-dark"
           onClick={() => {
-            if (value === expected) {
+            if (value === getExpectedPassword()) {
               try {
-                window.localStorage.setItem(storageKey, '1')
+                window.sessionStorage.setItem(storageKey, '1')
               } catch {
                 // ignore
               }

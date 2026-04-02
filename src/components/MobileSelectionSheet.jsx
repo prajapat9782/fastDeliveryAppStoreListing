@@ -239,7 +239,18 @@ export default function MobileSelectionSheet({
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-extrabold text-slate-900">{s.store_name}</p>
-                            <p className="mt-1 truncate text-[10px] font-bold uppercase text-primary/70">{s.client}</p>
+                            <div className="mt-1 flex items-center gap-1">
+                              <p className="truncate text-[10px] font-bold uppercase text-primary/70">{s.client}</p>
+                              {(() => {
+                                const req = Math.max(0, Math.round(Number(s?.totalRaiderReq ?? 0) || 0))
+                                if (!req) return null
+                                return (
+                                  <span className="inline-flex items-center rounded-lg bg-amber-100 px-1.5 py-0.5 font-mono text-[10px] font-black text-amber-900">
+                                    {req}
+                                  </span>
+                                )
+                              })()}
+                            </div>
                             <p className="mt-1 text-[10px] font-bold text-slate-500">{s.distanceKm.toFixed(1)} km away</p>
                             <p className="mt-1 truncate text-[10px] font-semibold text-slate-400">{s.city}</p>
                           </div>
