@@ -103,6 +103,9 @@ export default function App() {
 
   const riderStats = useMemo(() => computeRiderRequirementStats(storesInSelectedCity), [storesInSelectedCity])
 
+  /** Full dataset — used by map legend only (ignores zone/city/client/map filters) */
+  const riderStatsOverall = useMemo(() => computeRiderRequirementStats(stores), [stores])
+
   const flyToPoint = useMemo(() => {
     if (!storeId) return null
     return storesInZone.find((s) => s.id === storeId) ?? null
@@ -215,7 +218,10 @@ export default function App() {
                 />
 
                 <div className="pointer-events-none absolute left-3 top-3 z-[1000] hidden md:block md:left-4 md:top-4">
-                  <MapLegend riderByClient={riderStats.byClient} citySelected={Boolean(city)} />
+                  <MapLegend
+                    riderTotal={riderStatsOverall.total}
+                    riderByClient={riderStatsOverall.byClient}
+                  />
                 </div>
 
                 {selectedFromMap && (
