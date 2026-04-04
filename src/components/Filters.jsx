@@ -2,43 +2,44 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CLIENT_OPTIONS } from '../constants/clients'
 import { ZONE_OPTIONS } from '../utils/zone'
 
-function formatStoreLabel(s) {
-  return `${s.store_name} — ${s.client}`
-}
+const selectChevron = (
+  <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+)
 
 /**
- * Searchable store list — filters options as the user types.
+ * Generic searchable combobox.
+ * @param {string}   value        Currently selected value (string key).
+ * @param {function} onChange     Called with the new value string.
+ * @param {Array}    options      Array of { value, label } objects.
+ * @param {string}   placeholder  Placeholder when nothing selected.
+ * @param {string}   clearLabel   Text for the "clear" row (falsy to hide).
+ * @param {function} onInteract   Optional callback fired on focus / type / pick (used to clear map selection).
  */
-function StoreSearchCombobox({ storeId, setStoreId, storeOptions, onClearMapSelection }) {
+function SearchableSelect({ value, onChange, options, placeholder = 'Search…', clearLabel = 'Clear selection', onInteract }) {
   const listId = useId()
   const blurTimer = useRef(null)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
 
-  const selected = useMemo(() => storeOptions.find((s) => s.id === storeId) ?? null, [storeOptions, storeId])
+  const selectedLabel = useMemo(() => options.find((o) => o.value === value)?.label ?? '', [options, value])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return storeOptions
-    return storeOptions.filter((s) => {
-      const hay = `${s.store_name} ${s.client} ${s.id}`.toLowerCase()
-      return hay.includes(q)
-    })
-  }, [storeOptions, query])
+    if (!q) return options
+    return options.filter((o) => o.label.toLowerCase().includes(q))
+  }, [options, query])
 
-  const inputValue = open ? query : selected ? formatStoreLabel(selected) : ''
+  const inputValue = open ? query : selectedLabel
 
   useEffect(() => {
     if (!open) setQuery('')
-  }, [storeId, open])
+  }, [value, open])
 
-  useEffect(() => {
-    return () => {
-      if (blurTimer.current) clearTimeout(blurTimer.current)
-    }
-  }, [])
+  useEffect(() => () => { if (blurTimer.current) clearTimeout(blurTimer.current) }, [])
 
-  const bumpClearMap = () => onClearMapSelection?.()
+  const bump = () => onInteract?.()
 
   return (
     <div className="relative">
@@ -48,67 +49,51 @@ function StoreSearchCombobox({ storeId, setStoreId, storeOptions, onClearMapSele
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
-        placeholder={storeOptions.length ? 'Search store…' : 'No stores for filters'}
+        placeholder={options.length ? placeholder : 'No options'}
         autoComplete="off"
-        disabled={storeOptions.length === 0}
+        disabled={options.length === 0}
         value={inputValue}
-        onChange={(e) => {
-          bumpClearMap()
-          setQuery(e.target.value)
-          if (!open) setOpen(true)
-        }}
-        onFocus={() => {
-          bumpClearMap()
-          setOpen(true)
-          setQuery('')
-        }}
-        onBlur={() => {
-          blurTimer.current = setTimeout(() => setOpen(false), 120)
-        }}
+        onChange={(e) => { bump(); setQuery(e.target.value); if (!open) setOpen(true) }}
+        onFocus={() => { bump(); setOpen(true); setQuery('') }}
+        onBlur={() => { blurTimer.current = setTimeout(() => setOpen(false), 120) }}
         className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm font-medium text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-50"
       />
       {selectChevron}
-      {open && storeOptions.length > 0 && (
+      {open && options.length > 0 && (
         <ul
           id={listId}
           role="listbox"
           className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-white py-1 shadow-float"
         >
-          <li>
-            <button
-              type="button"
-              role="option"
-              className="w-full px-4 py-2.5 text-left text-sm text-slate-500 hover:bg-slate-50"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                bumpClearMap()
-                setStoreId('')
-                setOpen(false)
-              }}
-            >
-              Clear selection
-            </button>
-          </li>
+          {clearLabel && (
+            <li>
+              <button
+                type="button"
+                role="option"
+                className="w-full px-4 py-2.5 text-left text-sm text-slate-500 hover:bg-slate-50"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { bump(); onChange(''); setOpen(false) }}
+              >
+                {clearLabel}
+              </button>
+            </li>
+          )}
           {filtered.length === 0 ? (
             <li className="px-4 py-3 text-sm text-slate-500">No matches</li>
           ) : (
-            filtered.map((s) => (
-              <li key={s.id}>
+            filtered.map((o) => (
+              <li key={o.value}>
                 <button
                   type="button"
                   role="option"
-                  aria-selected={storeId === s.id}
+                  aria-selected={value === o.value}
                   className={`w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-slate-50 ${
-                    storeId === s.id ? 'bg-primary/10 text-primary' : 'text-slate-800'
+                    value === o.value ? 'bg-primary/10 text-primary' : 'text-slate-800'
                   }`}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    bumpClearMap()
-                    setStoreId(s.id)
-                    setOpen(false)
-                  }}
+                  onClick={() => { bump(); onChange(o.value); setOpen(false) }}
                 >
-                  {formatStoreLabel(s)}
+                  {o.label}
                 </button>
               </li>
             ))
@@ -118,12 +103,6 @@ function StoreSearchCombobox({ storeId, setStoreId, storeOptions, onClearMapSele
     </div>
   )
 }
-
-const selectChevron = (
-  <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-  </svg>
-)
 
 /**
  * Left sidebar — filters, distance, reset.
@@ -175,21 +154,13 @@ export default function Filters({
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">City</label>
-          <div className="relative">
-            <select
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="w-full appearance-none rounded-2xl border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">Select city</option>
-              {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            {selectChevron}
-          </div>
+          <SearchableSelect
+            value={city}
+            onChange={setCity}
+            options={cities.map((c) => ({ value: c, label: c }))}
+            placeholder="Search city…"
+            clearLabel="All cities"
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -213,11 +184,13 @@ export default function Filters({
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Store</label>
-          <StoreSearchCombobox
-            storeId={storeId}
-            setStoreId={setStoreId}
-            storeOptions={storeOptions}
-            onClearMapSelection={onClearMapSelection}
+          <SearchableSelect
+            value={storeId}
+            onChange={setStoreId}
+            options={storeOptions.map((s) => ({ value: s.id, label: `${s.store_name} — ${s.client}` }))}
+            placeholder="Search store…"
+            clearLabel="Clear selection"
+            onInteract={onClearMapSelection}
           />
         </div>
 
